@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let tasks = loadTasks();
     let qrScanner = null;
     let isScannerRunning = false;
-    const HTML5_QR_LIB_URL = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/dist/html5-qrcode.min.js';
+    const HTML5_QR_LIB_URL = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
     let html5QrLoadPromise = null;
 
     renderTasks();
