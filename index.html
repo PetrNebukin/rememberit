@@ -106,7 +106,7 @@
                     <div class="bg-gray-700 p-4 rounded-lg">
                         <h4 class="font-medium mb-2 text-secondary-500">Экспорт задач</h4>
                         <button id="generateQRBtn" class="w-full py-2 bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors">
-                            Создать QR-код
+                            Создать QR
                         </button>
                         <div id="qrCodeContainer" class="mt-4 flex justify-center hidden">
                             <div id="qrCode" class="p-3 bg-white rounded-lg"></div>
@@ -114,8 +114,18 @@
                     </div>
                     <div class="bg-gray-700 p-4 rounded-lg">
                         <h4 class="font-medium mb-2 text-secondary-500">Импорт задач</h4>
-                        <div id="reader" class="w-full h-64 bg-black rounded-lg mb-4"></div>
-                        <p id="scannerStatus" class="text-sm text-gray-400 mb-3"></p>
+                        <button 
+                            id="toggleScanBtn"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-medium shadow-lg shadow-primary-900/40 hover:shadow-secondary-500/40 transition-transform duration-300 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-secondary-500/60"
+                        >
+                            <i data-feather="camera"></i>
+                            <span>Сканировать QR</span>
+                        </button>
+                        <div id="readerContainer" class="hidden mt-4 rounded-xl border border-primary-500/40 bg-gradient-to-br from-gray-800 via-gray-900 to-black overflow-hidden relative">
+                            <div class="scanner-accent"></div>
+                            <div id="reader" class="w-full h-64"></div>
+                        </div>
+                        <p id="scannerStatus" class="text-sm text-gray-400 mt-3 mb-3"></p>
                         <div class="relative">
                             <input 
                                 type="text" 

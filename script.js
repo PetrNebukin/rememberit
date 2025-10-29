@@ -17,11 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const jsonInput = document.getElementById('jsonInput');
     const importJsonBtn = document.getElementById('importJsonBtn');
     const scannerStatus = document.getElementById('scannerStatus');
+    const toggleScanBtn = document.getElementById('toggleScanBtn');
+    const readerContainer = document.getElementById('readerContainer');
 
     let tasks = loadTasks();
     let qrScanner = null;
     let isScannerRunning = false;
-    const HTML5_QR_LIB_URL = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    const HTML5_QR_LIB_URL = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/dist/html5-qrcode.min.js';
+    const SCAN_PROMPT = 'Нажмите «Запустить сканер», чтобы включить камеру.';
     let html5QrLoadPromise = null;
 
     renderTasks();
@@ -37,6 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
     closeDevsModal.addEventListener('click', () => closeModal(devsModal));
     generateQRBtn.addEventListener('click', handleGenerateQr);
     importJsonBtn.addEventListener('click', handleImportJson);
+    if (toggleScanBtn) {
+        toggleScanBtn.addEventListener('click', handleToggleScan);
+        setScanButtonState('idle');
+    }
+
+    resetScannerUi(SCAN_PROMPT);
 
     function loadTasks() {
         try {
@@ -157,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fragment = document.createDocumentFragment();
 
-        tasks.forEach(task => {
+        tasks.forEach((task, index) => {
             const taskElement = document.createElement('div');
             taskElement.className = 'task-item bg-gray-800 p-5 rounded-xl shadow-md flex items-center justify-between transition-all duration-300';
             taskElement.setAttribute('data-id', String(task.id));
@@ -175,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <i data-feather="trash-2"></i>
                 </button>
             `;
+            taskElement.style.setProperty('--task-delay', `${index * 90}ms`);
             fragment.appendChild(taskElement);
         });
 
@@ -204,8 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (modal === syncModal) {
-            // Give the modal time to finish the opening transition before starting the camera.
-            setTimeout(startQrScanner, 320);
+            resetScannerUi(SCAN_PROMPT);
         }
     }
 
@@ -218,8 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.remove('show');
 
         if (modal === syncModal) {
-            stopQrScanner();
-            updateScannerStatus('');
+            stopQrScanner({ silent: true }).finally(() => resetScannerUi(''));
         }
 
         setTimeout(() => {
@@ -287,67 +295,162 @@ document.addEventListener('DOMContentLoaded', () => {
         return task && typeof task.id === 'number' && typeof task.text === 'string' && typeof task.completed === 'boolean';
     }
 
+    function handleToggleScan(event) {
+        event.preventDefault();
+        if (isScannerRunning) {
+            stopQrScanner().catch(() => {
+                updateScannerStatus('Не удалось корректно остановить сканер.', 'error');
+            });
+            return;
+        }
+
+        startQrScanner();
+    }
+
+    function setScanButtonState(state) {
+        if (!toggleScanBtn) {
+            return;
+        }
+
+        toggleScanBtn.dataset.state = state;
+        toggleScanBtn.disabled = state === 'loading';
+
+        let icon = 'camera';
+        let label = 'Запустить сканер';
+
+        if (state === 'active') {
+            icon = 'x-circle';
+            label = 'Остановить сканер';
+        } else if (state === 'loading') {
+            icon = 'loader';
+            label = 'Запуск...';
+        }
+
+        toggleScanBtn.innerHTML = `<i data-feather="${icon}"></i><span>${label}</span>`;
+        feather.replace();
+    }
+
+    function showScannerViewport() {
+        if (!readerContainer) {
+            return;
+        }
+
+        readerContainer.classList.remove('hidden');
+        requestAnimationFrame(() => readerContainer.classList.add('active'));
+    }
+
+    function hideScannerViewport(immediate = false) {
+        if (!readerContainer) {
+            return;
+        }
+
+        readerContainer.classList.remove('active');
+
+        if (immediate) {
+            readerContainer.classList.add('hidden');
+            return;
+        }
+
+        setTimeout(() => {
+            readerContainer.classList.add('hidden');
+        }, 260);
+    }
+
+    function resetScannerUi(message = '') {
+        setScanButtonState('idle');
+        hideScannerViewport(true);
+        updateScannerStatus(message);
+    }
+
     function startQrScanner() {
-        ensureQrLibLoaded().then(() => {
+        setScanButtonState('loading');
+        showScannerViewport();
+        updateScannerStatus('Подготовка сканера...');
+
+        return ensureQrLibLoaded().then(() => {
             if (!qrScanner) {
                 try {
                     qrScanner = new Html5Qrcode('reader');
                 } catch (error) {
                     console.error('Failed to create QR scanner', error);
+                    setScanButtonState('idle');
+                    hideScannerViewport();
                     updateScannerStatus('Не удалось инициализировать сканер.', 'error');
                     return;
                 }
             }
 
             if (isScannerRunning) {
+                setScanButtonState('active');
                 updateScannerStatus('Наведите камеру на QR-код.');
                 return;
             }
 
             if (!window.isSecureContext) {
+                setScanButtonState('idle');
+                hideScannerViewport();
                 updateScannerStatus('Доступ к камере возможен только при открытии сайта по HTTPS или через localhost.', 'error');
                 return;
             }
 
             if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                setScanButtonState('idle');
+                hideScannerViewport();
                 updateScannerStatus('Ваш браузер не поддерживает доступ к камере.', 'error');
                 return;
             }
 
             updateScannerStatus('Запрашиваем доступ к камере...');
 
-            qrScanner.start(
+            return qrScanner.start(
                 { facingMode: 'environment' },
                 { fps: 10, qrbox: 250 },
                 decodedText => {
                     jsonInput.value = decodedText;
-                    stopQrScanner();
-                    updateScannerStatus('QR-код считан. Данные перенесены в поле.', 'info');
+                    stopQrScanner({ silent: true }).finally(() => {
+                        setScanButtonState('idle');
+                        hideScannerViewport();
+                        updateScannerStatus('QR-код считан. Данные перенесены в поле.', 'info');
+                    });
                 },
                 error => {
                     console.warn('QR scan error', error);
                 }
             ).then(() => {
                 isScannerRunning = true;
+                setScanButtonState('active');
                 updateScannerStatus('Наведите камеру на QR-код.');
             }).catch(error => {
                 console.error('Failed to start QR scanner', error);
                 const errorMessage = typeof error === 'string' ? error : error?.message || 'Неизвестная ошибка';
+                setScanButtonState('idle');
+                hideScannerViewport();
                 updateScannerStatus(`Не удалось запустить камеру: ${errorMessage}`, 'error');
             });
         }).catch(error => {
             console.error('Failed to load HTML5 QR code library', error);
             const errorMessage = typeof error === 'string' ? error : error?.message || 'неизвестная ошибка';
+            setScanButtonState('idle');
+            hideScannerViewport();
             updateScannerStatus(`Библиотека сканера не загрузилась: ${errorMessage}`, 'error');
         });
     }
 
-    function stopQrScanner() {
+    function stopQrScanner(options = {}) {
+        const { silent = false } = options;
+
         if (!qrScanner || !isScannerRunning) {
-            return;
+            hideScannerViewport();
+            setScanButtonState('idle');
+            if (!silent) {
+                updateScannerStatus('Сканер остановлен.');
+            }
+            return Promise.resolve();
         }
 
-        qrScanner.stop().then(() => {
+        setScanButtonState('loading');
+
+        return qrScanner.stop().then(() => {
             isScannerRunning = false;
             try {
                 qrScanner.clear();
@@ -357,6 +460,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(error => {
             console.error('Failed to stop QR scanner', error);
             isScannerRunning = false;
+            if (!silent) {
+                updateScannerStatus('Не удалось корректно остановить сканер.', 'error');
+            }
+        }).finally(() => {
+            hideScannerViewport();
+            setScanButtonState('idle');
+            if (!silent && !isScannerRunning) {
+                updateScannerStatus('Сканер остановлен.');
+            }
         });
     }
 
