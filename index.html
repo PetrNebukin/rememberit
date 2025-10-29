@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RememberIt - Квантовый трекер задач</title>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="//cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/dist/html5-qrcode.min.js" defer></script>
     <link rel="stylesheet" href="style.css">
     <script>
         tailwind.config = {
@@ -36,11 +40,11 @@
                     RememberIt
                 </h1>
                 <div class="flex space-x-3">
-                    <button id="devsBtn" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors">
-                        <i data-feather="users"></i>
+                    <button id="devsBtn" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors" aria-label="Команда">
+                        <span class="icon" data-icon="users"></span>
                     </button>
-                    <button id="syncBtn" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors">
-                        <i data-feather="refresh-cw"></i>
+                    <button id="syncBtn" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors" aria-label="Синхронизировать">
+                        <span class="icon" data-icon="refresh-cw"></span>
                     </button>
                 </div>
             </div>
@@ -57,11 +61,11 @@
                     class="flex-grow px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-100 placeholder-gray-400 transition-all"
                     required
                 >
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     class="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors duration-300 flex items-center justify-center space-x-2"
                 >
-                    <i data-feather="plus"></i>
+                    <span class="icon" data-icon="plus"></span>
                     <span>Добавить</span>
                 </button>
             </form>
@@ -99,7 +103,7 @@
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-bold">Синхронизация задач</h3>
                     <button id="closeSyncModal" class="text-gray-400 hover:text-white">
-                        <i data-feather="x"></i>
+                        <span class="icon" data-icon="x"></span>
                     </button>
                 </div>
                 <div class="space-y-4">
@@ -114,12 +118,12 @@
                     </div>
                     <div class="bg-gray-700 p-4 rounded-lg">
                         <h4 class="font-medium mb-2 text-secondary-500">Импорт задач</h4>
-                        <button 
+                        <button
                             id="toggleScanBtn"
                             class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-medium shadow-lg shadow-primary-900/40 hover:shadow-secondary-500/40 transition-transform duration-300 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-secondary-500/60"
                         >
-                            <i data-feather="camera"></i>
-                            <span>Сканировать QR</span>
+                            <span class="icon" data-icon="camera"></span>
+                            <span>Запустить сканер</span>
                         </button>
                         <div id="readerContainer" class="hidden mt-4 rounded-xl border border-primary-500/40 bg-gradient-to-br from-gray-800 via-gray-900 to-black overflow-hidden relative">
                             <div class="scanner-accent"></div>
@@ -151,7 +155,7 @@
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-bold">Наша команда</h3>
                     <button id="closeDevsModal" class="text-gray-400 hover:text-white">
-                        <i data-feather="x"></i>
+                        <span class="icon" data-icon="x"></span>
                     </button>
                 </div>
                 <div class="space-y-4">
@@ -219,8 +223,8 @@
         <div class="container mx-auto px-4 text-center text-sm">
             &copy; 2025 OldGod Industries.
         </div>
+    </footer>
 
-    <script src="script.js"></script>
-    <script>feather.replace();</script>
+    <script src="script.js" defer></script>
 </body>
 </html>

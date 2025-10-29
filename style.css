@@ -1,15 +1,3 @@
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-@keyframes auroraDrift {
-    0% { transform: translate3d(-12%, -6%, 0) scale(1.05); opacity: 0.45; }
-    50% { transform: translate3d(14%, 6%, 0) scale(1.12); opacity: 0.62; }
-    100% { transform: translate3d(-12%, -6%, 0) scale(1.05); opacity: 0.45; }
-}
-
 @keyframes titleGlow {
     0%, 100% { text-shadow: 0 0 22px rgba(139, 92, 246, 0.55); }
     40% { text-shadow: 0 0 32px rgba(14, 165, 233, 0.65); }
@@ -50,40 +38,20 @@
     50% { transform: scale(1.05); }
 }
 
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 body {
     position: relative;
     min-height: 100vh;
     overflow-x: hidden;
-    background-color: #030712;
-}
-
-body::before,
-body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-}
-
-body::before {
-    z-index: -2;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(14, 165, 233, 0.23), rgba(236, 72, 153, 0.26));
-    background-size: 260% 260%;
-    filter: blur(140px);
-    animation: gradientShift 24s ease-in-out infinite;
-}
-
-body::after {
-    z-index: -3;
-    background: radial-gradient(circle at 20% 15%, rgba(236, 72, 153, 0.28), transparent 55%),
-                radial-gradient(circle at 80% 10%, rgba(14, 165, 233, 0.24), transparent 60%),
-                radial-gradient(circle at 50% 75%, rgba(139, 92, 246, 0.28), transparent 55%);
-    filter: blur(160px);
-    animation: auroraDrift 34s ease-in-out infinite;
+    background: linear-gradient(135deg, #030712 0%, #0f172a 50%, #030712 100%);
 }
 
 header h1 {
-    animation: titleGlow 11s ease-in-out infinite;
+    animation: none;
 }
 
 .task-item {
@@ -94,7 +62,8 @@ header h1 {
     animation: taskFloat 0.72s var(--task-delay, 0ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
     border: 1px solid rgba(148, 163, 184, 0.1);
     background-image: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.92));
-    transition: transform 0.45s ease, box-shadow 0.45s ease, border-color 0.45s ease;
+    transition: transform 0.45s ease, box-shadow 0.45s ease, border-color 0.45s ease, opacity 0.25s ease;
+    will-change: transform, opacity;
 }
 
 .task-item::before {
@@ -170,6 +139,20 @@ header h1 {
 
 button, input[type="checkbox"] {
     transition: all 0.2s ease;
+    will-change: auto;
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.icon svg {
+    display: block;
+    stroke: currentColor;
+    will-change: auto;
 }
 
 #toggleScanBtn {
@@ -185,6 +168,10 @@ button, input[type="checkbox"] {
     background-image: linear-gradient(135deg, #6366f1, #0ea5e9);
     cursor: wait;
     opacity: 0.8;
+}
+
+#toggleScanBtn[data-state="loading"] svg {
+    animation: spin 1s linear infinite;
 }
 
 #toggleScanBtn[data-state="active"] {
@@ -203,6 +190,11 @@ button, input[type="checkbox"] {
 #readerContainer.active {
     opacity: 1;
     transform: translateY(0) scale(1);
+}
+
+.task-item.will-remove {
+    opacity: 0;
+    transform: translate3d(12px, 10px, 0) scale(0.96);
 }
 
 .scanner-accent {

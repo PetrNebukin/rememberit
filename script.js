@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const HTML5_QR_LIB_URL = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/dist/html5-qrcode.min.js';
     const SCAN_PROMPT = 'Нажмите «Запустить сканер», чтобы включить камеру.';
     let html5QrLoadPromise = null;
+    const iconCache = new Map();
+
+    hydrateStaticIcons();
 
     renderTasks();
     updateStats();
@@ -40,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeDevsModal.addEventListener('click', () => closeModal(devsModal));
     generateQRBtn.addEventListener('click', handleGenerateQr);
     importJsonBtn.addEventListener('click', handleImportJson);
+
     if (toggleScanBtn) {
         toggleScanBtn.addEventListener('click', handleToggleScan);
         setScanButtonState('idle');
@@ -70,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         scannerStatus.textContent = message;
+
         if (type === 'error') {
             scannerStatus.classList.add('text-red-400');
             scannerStatus.classList.remove('text-gray-400');
@@ -129,8 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (task.completed) {
             textSpan?.classList.add('text-gray-500', 'line-through', 'task-completed', 'active');
-            iconContainer.innerHTML = '<i data-feather="check" class="w-4 h-4 text-white"></i>';
-            feather.replace();
+            iconContainer.innerHTML = getIcon('check', 16);
         } else {
             textSpan?.classList.remove('text-gray-500', 'line-through', 'task-completed', 'active');
             iconContainer.innerHTML = '';
@@ -146,7 +150,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const taskId = Number.parseInt(deleteButton.dataset.id, 10);
         tasks = tasks.filter(task => task.id !== taskId);
         saveTasks();
-        renderTasks();
+
+        const taskElement = deleteButton.closest('.task-item');
+        if (taskElement) {
+            taskElement.classList.add('will-remove');
+            setTimeout(() => taskElement.remove(), 150);
+        }
+
+        if (tasks.length === 0) {
+            renderTasks();
+        }
+
         updateStats();
     }
 
@@ -155,12 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (tasks.length === 0) {
             tasksContainer.innerHTML = `
-                <div class="text-center py-8 text-gray-500">
-                    <i data-feather="inbox" class="w-12 h-12 mx-auto mb-4"></i>
+                <div class="text-center py-8 text-gray-500" data-empty="true">
+                    <div class="mx-auto mb-4 flex justify-center">${getIcon('inbox', 48)}</div>
                     <p>Нет задач. Добавьте первую!</p>
                 </div>
             `;
-            feather.replace();
             return;
         }
 
@@ -170,18 +183,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const taskElement = document.createElement('div');
             taskElement.className = 'task-item bg-gray-800 p-5 rounded-xl shadow-md flex items-center justify-between transition-all duration-300';
             taskElement.setAttribute('data-id', String(task.id));
+            const checkboxIcon = task.completed ? getIcon('check', 16) : '';
+            const taskTextClass = task.completed ? 'text-gray-500 line-through task-completed active' : 'text-gray-200';
+            const deleteIcon = getIcon('trash-2', 18);
             taskElement.innerHTML = `
                 <div class="flex items-center space-x-4">
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" ${task.completed ? 'checked' : ''} class="sr-only peer" data-id="${task.id}">
                         <div class="w-6 h-6 bg-gray-700 peer-checked:bg-primary-500 rounded-md flex items-center justify-center transition-colors peer-checked:ring-2 peer-checked:ring-primary-300">
-                            ${task.completed ? '<i data-feather="check" class="w-4 h-4 text-white"></i>' : ''}
+                            ${checkboxIcon}
                         </div>
                     </label>
-                    <span class="${task.completed ? 'text-gray-500 line-through task-completed active' : 'text-gray-200'}">${task.text}</span>
+                    <span class="${taskTextClass}">${task.text}</span>
                 </div>
-                <button class="delete-btn text-gray-400 hover:text-red-400 transition-colors" data-id="${task.id}">
-                    <i data-feather="trash-2"></i>
+                <button class="delete-btn text-gray-400 hover:text-red-400 transition-colors" data-id="${task.id}" aria-label="Удалить задачу">
+                    ${deleteIcon}
                 </button>
             `;
             taskElement.style.setProperty('--task-delay', `${index * 90}ms`);
@@ -189,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         tasksContainer.appendChild(fragment);
-        feather.replace();
     }
 
     function updateStats() {
@@ -215,6 +230,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (modal === syncModal) {
             resetScannerUi(SCAN_PROMPT);
+            // Re-enable hidden icons when modal opens
+            requestAnimationFrame(() => {
+                const icons = syncModal.querySelectorAll('svg.feather');
+                icons.forEach(icon => {
+                    if (icon.parentElement?.classList.contains('icon')) {
+                        icon.style.display = '';
+                    }
+                });
+            });
         }
     }
 
@@ -227,7 +251,16 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.remove('show');
 
         if (modal === syncModal) {
-            stopQrScanner({ silent: true }).finally(() => resetScannerUi(''));
+            stopQrScanner({ silent: true }).finally(() => {
+                resetScannerUi('');
+                // Clean up feather icons in modal to reduce paint cost
+                const icons = syncModal.querySelectorAll('svg.feather');
+                icons.forEach(icon => {
+                    if (icon.parentElement?.classList.contains('icon')) {
+                        icon.style.display = 'none';
+                    }
+                });
+            });
         }
 
         setTimeout(() => {
@@ -326,8 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             label = 'Запуск...';
         }
 
-        toggleScanBtn.innerHTML = `<i data-feather="${icon}"></i><span>${label}</span>`;
-        feather.replace();
+        toggleScanBtn.innerHTML = `${getIcon(icon, 18)}<span>${label}</span>`;
     }
 
     function showScannerViewport() {
@@ -359,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetScannerUi(message = '') {
         setScanButtonState('idle');
         hideScannerViewport(true);
-        updateScannerStatus(message);
+        updateScannerStatus(message || SCAN_PROMPT);
     }
 
     function startQrScanner() {
@@ -443,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hideScannerViewport();
             setScanButtonState('idle');
             if (!silent) {
-                updateScannerStatus('Сканер остановлен.');
+                updateScannerStatus(SCAN_PROMPT);
             }
             return Promise.resolve();
         }
@@ -467,9 +499,38 @@ document.addEventListener('DOMContentLoaded', () => {
             hideScannerViewport();
             setScanButtonState('idle');
             if (!silent && !isScannerRunning) {
-                updateScannerStatus('Сканер остановлен.');
+                updateScannerStatus(SCAN_PROMPT);
             }
         });
+    }
+
+    function hydrateStaticIcons() {
+        if (!window.feather || !feather.icons) {
+            setTimeout(hydrateStaticIcons, 60);
+            return;
+        }
+
+        const placeholders = document.querySelectorAll('.icon[data-icon]');
+        placeholders.forEach(node => {
+            const iconName = node.dataset.icon;
+            const size = Number.parseInt(node.dataset.size || '18', 10);
+            node.innerHTML = getIcon(iconName, size);
+        });
+    }
+
+    function getIcon(name, size = 18, strokeWidth = 1.8) {
+        if (!window.feather || !feather.icons?.[name]) {
+            return '';
+        }
+
+        const cacheKey = `${name}-${size}-${strokeWidth}`;
+        if (iconCache.has(cacheKey)) {
+            return iconCache.get(cacheKey);
+        }
+
+        const svg = feather.icons[name].toSvg({ width: size, height: size, 'stroke-width': strokeWidth });
+        iconCache.set(cacheKey, svg);
+        return svg;
     }
 
     function ensureQrLibLoaded() {
