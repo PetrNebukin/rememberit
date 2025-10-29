@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const qrCode = document.getElementById('qrCode');
     const jsonInput = document.getElementById('jsonInput');
     const importJsonBtn = document.getElementById('importJsonBtn');
+    const scannerStatus = document.getElementById('scannerStatus');
 
     let tasks = loadTasks();
     let qrScanner = null;
@@ -50,6 +51,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function updateScannerStatus(message, type = 'info') {
+        if (!scannerStatus) {
+            return;
+        }
+
+        scannerStatus.textContent = message;
+        if (type === 'error') {
+            scannerStatus.classList.add('text-red-400');
+            scannerStatus.classList.remove('text-gray-400');
+        } else {
+            scannerStatus.classList.add('text-gray-400');
+            scannerStatus.classList.remove('text-red-400');
+        }
     }
 
     function handleTaskSubmit(event) {
@@ -201,6 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (modal === syncModal) {
             stopQrScanner();
+            updateScannerStatus('');
         }
 
         setTimeout(() => {
@@ -271,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function startQrScanner() {
         if (!window.Html5Qrcode) {
             console.warn('HTML5 QR code library is not available');
+            updateScannerStatus('Библиотека сканера не загрузилась.', 'error');
             return;
         }
 
@@ -279,13 +297,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 qrScanner = new Html5Qrcode('reader');
             } catch (error) {
                 console.error('Failed to create QR scanner', error);
+                updateScannerStatus('Не удалось инициализировать сканер.', 'error');
                 return;
             }
         }
 
         if (isScannerRunning) {
+            updateScannerStatus('Наведите камеру на QR-код.');
             return;
         }
+
+        if (!window.isSecureContext) {
+            updateScannerStatus('Доступ к камере возможен только при открытии сайта по HTTPS или через localhost.', 'error');
+            return;
+        }
+
+        if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+            updateScannerStatus('Ваш браузер не поддерживает доступ к камере.', 'error');
+            return;
+        }
+
+        updateScannerStatus('Запрашиваем доступ к камере...');
 
         qrScanner.start(
             { facingMode: 'environment' },
@@ -293,14 +325,18 @@ document.addEventListener('DOMContentLoaded', () => {
             decodedText => {
                 jsonInput.value = decodedText;
                 stopQrScanner();
+                updateScannerStatus('QR-код считан. Данные перенесены в поле.', 'info');
             },
             error => {
                 console.warn('QR scan error', error);
             }
         ).then(() => {
             isScannerRunning = true;
+            updateScannerStatus('Наведите камеру на QR-код.');
         }).catch(error => {
             console.error('Failed to start QR scanner', error);
+            const errorMessage = typeof error === 'string' ? error : error?.message || 'Неизвестная ошибка';
+            updateScannerStatus(`Не удалось запустить камеру: ${errorMessage}`, 'error');
         });
     }
 
@@ -311,7 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         qrScanner.stop().then(() => {
             isScannerRunning = false;
-            qrScanner.clear();
+            try {
+                qrScanner.clear();
+            } catch (error) {
+                console.warn('Failed to clear QR scanner', error);
+            }
         }).catch(error => {
             console.error('Failed to stop QR scanner', error);
             isScannerRunning = false;

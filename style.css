@@ -88,6 +88,10 @@ button, input[type="checkbox"] {
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
 }
 
+#scannerStatus {
+    min-height: 1.5rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
     #taskForm {
